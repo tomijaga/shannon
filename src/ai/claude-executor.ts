@@ -232,9 +232,22 @@ export async function runClaudePrompt(
     sdkEnv.CLAUDE_CODE_OAUTH_TOKEN = process.env.CLAUDE_CODE_OAUTH_TOKEN;
   }
 
-  // 5. Configure SDK options
+  // 5. Configure SDK options — use Ollama cloud model when ANTHROPIC_AUTH_TOKEN=ollama, else default
+  const resolvedModel = process.env.ANTHROPIC_AUTH_TOKEN === 'ollama' ? 'glm-5:cloud' : 'claude-sonnet-4-5-20250929';
+  const resolvedBaseUrl = process.env.ANTHROPIC_BASE_URL
+    ?? (process.env.ANTHROPIC_AUTH_TOKEN === 'ollama' ? 'http://localhost:11434' : undefined);
+  if (resolvedBaseUrl) {
+    sdkEnv.ANTHROPIC_BASE_URL = resolvedBaseUrl;
+  }
+
+  // ANTHROPIC_AUTH_TOKEN is the dummy bearer value Ollama expects for all requests
+  // (both local and cloud models route through the same Ollama server)
+  if (process.env.ANTHROPIC_AUTH_TOKEN) {
+    sdkEnv.ANTHROPIC_AUTH_TOKEN = process.env.ANTHROPIC_AUTH_TOKEN;
+  }
+  logger.info(`Using model: ${resolvedModel}${resolvedBaseUrl ? ` via ${resolvedBaseUrl}` : ''}`);
   const options = {
-    model: 'claude-sonnet-4-5-20250929',
+    model: resolvedModel,
     maxTurns: 10_000,
     cwd: sourceDir,
     permissionMode: 'bypassPermissions' as const,

@@ -142,14 +142,20 @@ cmd_start() {
     exit 1
   fi
 
-  # Check for API key (router mode can use alternative provider API keys)
+  # Check for API key (router mode and Ollama can use alternative auth)
   if [ -z "$ANTHROPIC_API_KEY" ] && [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
     if [ "$ROUTER" = "true" ] && { [ -n "$OPENAI_API_KEY" ] || [ -n "$OPENROUTER_API_KEY" ]; }; then
       # Router mode with alternative provider - set a placeholder for SDK init
       export ANTHROPIC_API_KEY="router-mode"
+    elif [ "$ANTHROPIC_AUTH_TOKEN" = "ollama" ]; then
+      # Ollama mode — all models (local and cloud) route through the Ollama server.
+      # The Ollama server handles cloud model routing internally using the model name.
+      # SDK still needs a non-empty placeholder to initialise; Ollama ignores it.
+      export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-ollama}"
     else
       echo "ERROR: Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN in .env"
       echo "       (or use ROUTER=true with OPENAI_API_KEY or OPENROUTER_API_KEY)"
+      echo "       (or set ANTHROPIC_BASE_URL for Ollama or other custom endpoints)"
       exit 1
     fi
   fi
